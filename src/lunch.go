@@ -169,7 +169,7 @@ func main(){
 	bio:=bufio.NewReader(os.Stdin)
 	for ;true;{
 		word=""
-		fmt.Printf("input your world/>")
+		fmt.Printf("input your word/>")
 		line ,_,err:=bio.ReadLine()
 		if err !=nil{
 			showError(err)
