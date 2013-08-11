@@ -167,18 +167,21 @@ func showWord(word Word){
 func main(){
 	var word string
 	bio:=bufio.NewReader(os.Stdin)
-	for ;true;{
-		word=""
+	for{
 		fmt.Printf("input your word/>")
 		line ,_,err:=bio.ReadLine()
 		if err !=nil{
 			showError(err)
 		}
 		word=string(line)
+		if(word == ":q"){
+			break
+		}
 		word=strings.TrimSpace(word)
 		if len(word)>0{			
 			val:=translate(word)
 			showWord(val)
 		}
+		word=""
 	}
 }
