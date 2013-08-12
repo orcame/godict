@@ -15,7 +15,8 @@ type Acceptation struct{
 }
 
 type Word struct{
-	Value string
+	Word string
+	Real string
 	Similar string
 	LookupCount int
 	Acceptations []Acceptation
@@ -24,6 +25,7 @@ type Word struct{
 var question_re=regexp.MustCompile(`(?m)<div id="question"(\w|\W)*?</div>`)
 
 var ul_re=regexp.MustCompile(`<ul(\w|\W)*?</ul>`)
+var word_re=regexp.MustCompile(`<h1 id="word_name_h1">.*?</h1>`)
 
 var group_pos_re =regexp.MustCompile(`(?m)<div class="group_pos">(\w|\W)*?</div>`)
 var pos_re =regexp.MustCompile(`(?m)<p>(\w|\W)*?</p>`)
@@ -82,8 +84,7 @@ func translate(word string) Word{
 		val.LookupCount++
 		return val
 	}
-	var result Word
-	result.Value=word
+	var result Word=Word{Word:word}
 
 	resp, err := http.Get("http://www.iciba.com/"+word) 	
 	if err !=nil{
@@ -94,7 +95,8 @@ func translate(word string) Word{
 		defer resp.Body.Close()
 		contents, err:=ioutil.ReadAll(resp.Body)
 		if err != nil{
-			fmt.Printf("%s",err)
+			showError(err)
+			return result;
 		}
 		contents_str :=string(contents)
 		question:=question_re.FindAllString(contents_str,-1)
@@ -105,6 +107,15 @@ func translate(word string) Word{
 				similar=space_re.ReplaceAllString(similar," ")
 				result.Similar=strings.TrimSpace(similar)
 			}
+		}
+		word_r :=word_re.FindAllString(contents_str,-1)
+		if len(word_r)>0{
+			result.Real=html_re.ReplaceAllString(word_r[0],"")
+		}else{
+			red("the word ",false)
+			cyan(word,false)
+			red(" note exist.",true);
+			return result;
 		}
 		group_pos:=group_pos_re.FindAllString(contents_str,-1)
 		if len(group_pos)>0{
@@ -143,14 +154,14 @@ func showWord(word Word){
 		notexist:=len(word.Similar)>0
 		if notexist{
 			sims:=strings.Split(word.Similar," ")
-			yellow(">>>>>>>>The world "+word.Value+" not exist, do you means ",false)
+			yellow(">>>>>>>>The world "+word.Word+" not exist, do you means ",false)
 			for _,val := range sims{
 				cyan("["+val+"], ",false)
 			}
 
 			yellow("\b\b?\n",true)
 			yellow("\tThe means of word ",false)
-			cyan(sims[0],false)
+			cyan(word.Real,false)
 			yellow(" is:\n",true)
 		}
 		for _,val := range word.Acceptations{
