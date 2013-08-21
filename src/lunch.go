@@ -1,12 +1,12 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"bufio"
 	"os"
 	"strings"
 	"io/ioutil"
+	"../../terminal/src"
 	"regexp")
 
 type Acceptation struct{
@@ -21,62 +21,24 @@ type Word struct{
 	LookupCount int
 	Acceptations []Acceptation
 }
+var(
+	to=terminal.Stdout.Bold().Intensity()
+	te=terminal.Stderr.Color('r').Bold().Intensity()
+	question_re=regexp.MustCompile(`(?m)<div id="question"(\w|\W)*?</div>`)
 
-var question_re=regexp.MustCompile(`(?m)<div id="question"(\w|\W)*?</div>`)
+	ul_re=regexp.MustCompile(`<ul(\w|\W)*?</ul>`)
+	word_re=regexp.MustCompile(`<h1 id="word_name_h1">.*?</h1>`)
 
-var ul_re=regexp.MustCompile(`<ul(\w|\W)*?</ul>`)
-var word_re=regexp.MustCompile(`<h1 id="word_name_h1">.*?</h1>`)
+	group_pos_re =regexp.MustCompile(`(?m)<div class="group_pos">(\w|\W)*?</div>`)
+	pos_re =regexp.MustCompile(`(?m)<p>(\w|\W)*?</p>`)
+	fl_re = regexp.MustCompile(`(?m)<strong class="fl">.*?</strong>`)
+	label_re=regexp.MustCompile(`<span class="label_list">(\w|\W)*?</span>`)
 
-var group_pos_re =regexp.MustCompile(`(?m)<div class="group_pos">(\w|\W)*?</div>`)
-var pos_re =regexp.MustCompile(`(?m)<p>(\w|\W)*?</p>`)
-var fl_re = regexp.MustCompile(`(?m)<strong class="fl">.*?</strong>`)
-var label_re=regexp.MustCompile(`<span class="label_list">(\w|\W)*?</span>`)
+	html_re = regexp.MustCompile("\\<[\\S\\s]+?\\>")  
+	space_re =regexp.MustCompile(`(\s|&nbsp;){2,}`)
 
-var html_re = regexp.MustCompile("\\<[\\S\\s]+?\\>")  
-var space_re =regexp.MustCompile(`(\s|&nbsp;){2,}`)
-
-var history map[string]Word = make(map[string]Word)
-
-var colorEnd string="\x1b[0m"
-
-func printWithColor(value string,colorCode string,newline bool){
-	fmt.Printf(colorCode)
-	fmt.Printf(value)
-	fmt.Printf(colorEnd)
-	if newline{
-		fmt.Printf("\n")
-	}
-}
-
-// BIRed='\e[1;91m'        # Red
-func red(value string,newline bool){
-	printWithColor(value,"\x1b[1;91m",newline)
-}
-
-// BIGreen='\e[1;92m'      # Green
-func green(value string,newline bool){
-	printWithColor(value,"\x1b[1;92m",newline)
-}
-// BIYellow='\e[1;93m'     # Yellow
-func yellow(value string,newline bool){
-	printWithColor(value,"\x1b[1;93m",newline)
-}
-// BIBlue='\e[1;94m'       # Blue
-func blue(value string,newline bool){
-	printWithColor(value,"\x1b[1;94m",newline)
-}
-// BIPurple='\e[1;95m'     # Purple
-func purple(value string,newline bool){
-	printWithColor(value,"\x1b[1;95m",newline)
-}
-// BICyan='\e[1;96m'       # Cyan
-func cyan(value string,newline bool){
-	printWithColor(value,"\x1b[1;96m",newline)
-}
-
-func showError(err error){
-	red(err.Error(),true)
-}
+	history map[string]Word = make(map[string]Word)
+)
 
 
 func translate(word string) Word{
@@ -88,14 +50,14 @@ func translate(word string) Word{
 
 	resp, err := http.Get("http://www.iciba.com/"+word) 	
 	if err !=nil{
-		showError(err)
+		te.Print(err.Error()).Nl()
 		return result
 	}else{
 
 		defer resp.Body.Close()
 		contents, err:=ioutil.ReadAll(resp.Body)
 		if err != nil{
-			showError(err)
+			te.Print(err.Error()).Nl()
 			return result;
 		}
 		contents_str :=string(contents)
@@ -112,9 +74,14 @@ func translate(word string) Word{
 		if len(word_r)>0{
 			result.Real=html_re.ReplaceAllString(word_r[0],"")
 		}else{
-			red("the word ",false)
-			cyan(word,false)
-			red(" note exist.",true);
+			to.Bold().
+				Color('r').
+				Print("the word ").
+				Color('c').
+				Print(word).
+				Color('r').
+				Print(" ","not exist.").
+				Nl()
 			return result;
 		}
 		group_pos:=group_pos_re.FindAllString(contents_str,-1)
@@ -150,28 +117,26 @@ func translate(word string) Word{
 
 func showWord(word Word){
 	if word.LookupCount>0{
-		yellow("",true)
+		terminal.Stdout.Color('y').Nl()
 		notexist:=len(word.Similar)>0
 		if notexist{
 			sims:=strings.Split(word.Similar," ")
-			yellow(">>>>>>>>The world "+word.Word+" not exist, do you means ",false)
+			to.Color('y').Print(">>>>>>>>The world ",word.Word," not exist, do you means ").
+				Color('c')
 			for _,val := range sims{
-				cyan("["+val+"], ",false)
+				to.Print("[",val,"], ")
 			}
-
-			yellow("\b\b?\n",true)
-			yellow("\tThe means of word ",false)
-			cyan(word.Real,false)
-			yellow(" is:\n",true)
+			to.Color('y').Print("\b\b?").Nl().Print("\tThe means of word ").
+				Color('c').Print(word.Real).Color('y').Print(" is:").Nl()
 		}
 		for _,val := range word.Acceptations{
 			if notexist{
-				green("\t",false)				
+				to.Color('g').Print("\t")				
 			}
-			green(val.PartOfSpeech,false)
-			purple(val.Meaning,true)
+			to.Color('g').Print(val.PartOfSpeech).
+				Color('p').Print(val.Meaning).Nl()
 		}
-		yellow("",true)
+		to.Nl()
 	}
 }
 
@@ -179,13 +144,14 @@ func main(){
 	var word string
 	bio:=bufio.NewReader(os.Stdin)
 	for{
-		fmt.Printf("input your word/>")
+		to.Color('w').Print("input your word/>")
 		line ,_,err:=bio.ReadLine()
 		if err !=nil{
-			showError(err)
+			te.Print(err.Error()).Nl()
 		}
 		word=string(line)
 		if(word == ":q"){
+			to.Reset()
 			break
 		}
 		word=strings.TrimSpace(word)
