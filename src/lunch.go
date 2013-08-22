@@ -74,14 +74,7 @@ func translate(word string) Word{
 		if len(word_r)>0{
 			result.Real=html_re.ReplaceAllString(word_r[0],"")
 		}else{
-			to.Bold().
-				Color('r').
-				Print("the word ").
-				Color('c').
-				Print(word).
-				Color('r').
-				Print(" ","not exist.").
-				Nl()
+			to.Bold().Fprint("@{r}the word ","@{c}",word,"@{r} not exist.").Nl()
 			return result;
 		}
 		group_pos:=group_pos_re.FindAllString(contents_str,-1)
@@ -121,20 +114,19 @@ func showWord(word Word){
 		notexist:=len(word.Similar)>0
 		if notexist{
 			sims:=strings.Split(word.Similar," ")
-			to.Color('y').Print(">>>>>>>>The world ",word.Word," not exist, do you means ").
+			to.Fprint("@{y}>>>>>>>>The world ","@{c}",word.Word,"@{y} not exist, do you means ").
 				Color('c')
 			for _,val := range sims{
 				to.Print("[",val,"], ")
 			}
-			to.Color('y').Print("\b\b?").Nl().Print("\tThe means of word ").
-				Color('c').Print(word.Real).Color('y').Print(" is:").Nl()
+			to.Fprint("@{y}\b\b?").Nl().Fprint("@{y}\tThe means of word ","@{c}",word.Real,"@{y} is:").Nl()
 		}
 		for _,val := range word.Acceptations{
 			if notexist{
 				to.Color('g').Print("\t")				
 			}
 			to.Color('g').Print(val.PartOfSpeech).
-				Color('p').Print(val.Meaning).Nl()
+				Color('c').Print(val.Meaning).Nl()
 		}
 		to.Nl()
 	}
